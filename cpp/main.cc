@@ -97,17 +97,17 @@ public:
 	}
 	void OnEmptyPlaceChanged() override
 	{
-		std::unique_lock<std::mutex> lock(emptyPlaceLock);
 		if (mcs->GetEmptyPlaceOccupied())
 		{
+			std::lock_guard<std::mutex> lock(emptyPlaceLock);
 			emptyPlaceCond.notify_one();
 		}
 	}
 	void OnFullPlaceChanged() override
 	{
-		std::unique_lock<std::mutex> lock(fullPlaceLock);
 		if (!mcs->GetFullPlaceOccupied())
 		{
+			std::lock_guard<std::mutex> lock(fullPlaceLock);
 			fullPlaceCond.notify_one(); 
 		}
 	}
@@ -134,9 +134,9 @@ public:
 				{
 					emptyPlaceCond.wait(emptyLock);
 				}
+				mcs->SetEmptyPlaceOccupied(false);
 				printf("Machine %d has empty bottles\n", i);
 			}
-			mcs->SetEmptyPlaceOccupied(false);
 			printf("Machine %d is filling bottles\n", i);
 			// Simulate work
 			std::this_thread::sleep_for(std::chrono::seconds(6));
@@ -148,8 +148,8 @@ public:
 				{
 					fullPlaceCond.wait(fullLock);
 				}
+				mcs->SetFullPlaceOccupied(true);
 			}
-			mcs->SetFullPlaceOccupied(true);
 			printf("Machine %d has placed full bottles\n", i);
 		}
 	}
