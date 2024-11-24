@@ -18,33 +18,43 @@ public:
 class MasterControlSystem
 {
 private:
-	std::atomic<bool> emptyPlaceOccupied;
-	std::atomic<bool> fullPlaceOccupied;
+	bool emptyPlaceOccupied;
+	bool fullPlaceOccupied;
+	std::mutex emptyPlaceLock;
+	std::mutex fullPlaceLock;
 	IObserver *observer;
 
 public:
 	MasterControlSystem() : emptyPlaceOccupied(false), fullPlaceOccupied(false), observer(nullptr) {}
 	bool GetEmptyPlaceOccupied()
 	{
+		std::lock_guard<std::mutex> lock(emptyPlaceLock);
 		return emptyPlaceOccupied;
 	}
 	bool GetFullPlaceOccupied()
 	{
+		std::lock_guard<std::mutex> lock(fullPlaceLock);
 		return fullPlaceOccupied;
 	}
 	void SetEmptyPlaceOccupied(bool emptyPlaceOccupied)
 	{
-		if (emptyPlaceOccupied == this->emptyPlaceOccupied)
-			return;
-		this->emptyPlaceOccupied = emptyPlaceOccupied;
+		{
+			std::lock_guard<std::mutex> lock(emptyPlaceLock);
+			if (emptyPlaceOccupied == this->emptyPlaceOccupied)
+				return;
+			this->emptyPlaceOccupied = emptyPlaceOccupied;
+		}
 		if (observer)
 			observer->OnEmptyPlaceChanged();
 	}
 	void SetFullPlaceOccupied(bool fullPlaceOccupied)
 	{
-		if (fullPlaceOccupied == this->fullPlaceOccupied)
-			return;
-		this->fullPlaceOccupied = fullPlaceOccupied;
+		{
+			std::lock_guard<std::mutex> lock(fullPlaceLock);
+			if (fullPlaceOccupied == this->fullPlaceOccupied)
+				return;
+			this->fullPlaceOccupied = fullPlaceOccupied;
+		}
 		if (observer)
 			observer->OnFullPlaceChanged();
 	}
